@@ -14,6 +14,9 @@ func (r Role) Compare(role Role) bool {
 	if r.Name != role.Name {
 		return false
 	}
+	if r.Super {
+		return true
+	}
 	if len(r.Securables) != len(role.Securables) {
 		return false
 	}
