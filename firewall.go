@@ -2,7 +2,7 @@ package firewall
 
 import (
 	"regexp"
-	"slices"
+	"strings"
 )
 
 type Firewall struct {
@@ -17,9 +17,7 @@ type Firewall struct {
 }
 
 type Attempt struct {
-	Group  string
-	Path   string
-	Role   Role
+	Roles  []Role
 	Secret string
 }
 
@@ -71,24 +69,43 @@ func (f *Firewall) Try(attempt Attempt) Result {
 		return Result{Ok: true}
 	}
 	if len(f.Roles) > 0 {
-		for _, r := range f.Roles {
-			if r.Compare(attempt.Role) {
-				return Result{Ok: true}
+		for _, fr := range f.Roles {
+			for _, ar := range attempt.Roles {
+				if fr.Compare(ar) {
+					return Result{Ok: true}
+				}
 			}
 		}
 	}
-	if len(f.Groups) > 0 && slices.Contains(f.Groups, attempt.Group) {
+	if len(f.Redirect) > 0 {
 		return Result{Redirect: f.Redirect}
-	}
-	if len(f.Paths) > 0 && slices.Contains(f.Paths, attempt.Path) {
-		return Result{Redirect: f.Redirect}
-	}
-	if len(f.Matchers) > 0 {
-		for _, m := range f.Matchers {
-			if m.MatchString(attempt.Path) {
-				return Result{Redirect: f.Redirect}
-			}
-		}
 	}
 	return Result{Ok: true}
+}
+
+func (f *Firewall) Match(path string) bool {
+	for _, item := range f.Matchers {
+		if item.MatchString(path) {
+			return true
+		}
+	}
+	return false
+}
+
+func (f *Firewall) MatchPath(path string) bool {
+	for _, item := range f.Paths {
+		if strings.HasPrefix(item, path) {
+			return true
+		}
+	}
+	return false
+}
+
+func (f *Firewall) MatchGroup(group string) bool {
+	for _, item := range f.Groups {
+		if strings.HasPrefix(item, group) {
+			return true
+		}
+	}
+	return false
 }
